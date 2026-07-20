@@ -1,9 +1,10 @@
-// DOM elements from index.html
+// DOM elements from index.html (เพิ่มปุ่มเปิดฟรี)
 const slider = document.getElementById("coinSlider");
 const input = document.getElementById("coinInput");
 const dashboardSummary = document.getElementById("dashboardSummary");
 const compareGrid = document.getElementById("compareGrid");
 const probabilityTableBody = document.getElementById("probabilityTableBody");
+const openFreeBtn = document.getElementById("openFreeBtn"); // เพิ่มปุ่มเปิดฟรี
 const openSingleBtn = document.getElementById("openSingleBtn");
 const openTenBtn = document.getElementById("openTenBtn");
 const resetOpeningBtn = document.getElementById("resetOpeningBtn");
@@ -19,24 +20,29 @@ const simulationResults = document.getElementById("simulationResults");
 const totalPoolSize = 150;
 const standardCardImageUrl = "https://www.konami.com/efootball/s/img/page/dreamteam/card_standard.jpg";
 
+// 1. ปรับข้อมูลการ์ดตามแพ็คใหม่ (Epic 1, Show Time 5, Highlight 6, Standard 138)
 const epicCardsData = [
-  { name: "Andres Iniesta", image: "https://efimg.com/efootballhub22/images/player_cards/89138288136169_l.png" },
-  { name: "Gerard Pique", image: "https://efimg.com/efootballhub22/images/player_cards/88041460867519_l.png" },
-  { name: "David Villa", image: "https://efimg.com/efootballhub22/images/player_cards/88044145220884_l.png" }
+  { name: "Rodri", image: "https://efimg.com/efootballhub22/images/player_cards/89138556678367_l.png" }
+];
+
+const showTimeCardsData = [
+  { name: "Marc Cucurella", image: "https://efimg.com/efootballhub22/images/player_cards/106787651045215_l.png" },
+  { name: "Unai Simon", image: "https://efimg.com/efootballhub22/images/player_cards/106787651035597_l.png" },
+  { name: "Dani Olmo", image: "https://efimg.com/efootballhub22/images/player_cards/106787651039542_l.png" },
+  { name: "Lamine Yamal", image: "https://efimg.com/efootballhub22/images/player_cards/106787651090754_l.png" },
+  { name: "Ferran Torres", image: "https://efimg.com/efootballhub22/images/player_cards/106787651045391_l.png" }
 ];
 
 const highlightCardsData = [
-  { name: "Alejandro Grimaldo", image: "https://efimg.com/efootballhub22/images/player_cards/105859132787394_l.png" },
-  { name: "Unai Simon", image: "https://efimg.com/efootballhub22/images/player_cards/105859132793293_l.png" },
-  { name: "Marc Cucurella", image: "https://efimg.com/efootballhub22/images/player_cards/105859132802911_l.png" },
-  { name: "Pedro Porro", image: "https://efimg.com/efootballhub22/images/player_cards/105859132806164_l.png" },
-  { name: "Martin Zubimendi", image: "https://efimg.com/efootballhub22/images/player_cards/105859132816538_l.png" },
-  { name: "Alex Baena", image: "https://efimg.com/efootballhub22/images/player_cards/105859132821094_l.png" },
-  { name: "Yeremy Pino", image: "https://efimg.com/efootballhub22/images/player_cards/105859132827344_l.png" },
-  { name: "Gavi", image: "https://efimg.com/efootballhub22/images/player_cards/105859132833571_l.png" }
+  { name: "Aymeric Laporte", image: "https://efimg.com/efootballhub22/images/player_cards/105854569331106_l.png" },
+  { name: "Mikel Merino", image: "https://efimg.com/efootballhub22/images/player_cards/105854569387197_l.png" },
+  { name: "Fabian Ruiz", image: "https://efimg.com/efootballhub22/images/player_cards/105854569391823_l.png" },
+  { name: "Pedro Porro", image: "https://efimg.com/efootballhub22/images/player_cards/105854569403412_l.png" },
+  { name: "Alex Baena", image: "https://efimg.com/efootballhub22/images/player_cards/105854569418342_l.png" },
+  { name: "Pau Cubarsi", image: "https://efimg.com/efootballhub22/images/player_cards/105854569449280_l.png" }
 ];
 
-const standardCardsData = Array.from({ length: 139 }, (_, index) => ({
+const standardCardsData = Array.from({ length: 138 }, (_, index) => ({
   name: `Standard Player ${index + 1}`,
   rarity: "standard",
   image: standardCardImageUrl
@@ -47,10 +53,12 @@ let openedCards = [];
 let totalCoinsSpent = 0;
 let openedCardKeys = new Set();
 let remainingPackPool = [];
+let isFreeChanceUsed = false; // รักษาสถานะเปิดฟรี (ใช้ได้ครั้งเดียว)
 
 // Initialization of main catalog cards
 function createCard(type, index, cardData, isOpened = false) {
-  const badgeText = type === "epic" ? "Epic" : type === "highlight" ? "Highlight" : "Standard";
+  // เพิ่ม Badge สำหรับ Show Time
+  const badgeText = type === "epic" ? "Epic" : type === "showtime" ? "ShowTime" : type === "highlight" ? "Highlight" : "Standard";
   
   const imageHtml = cardData.image
     ? `<img class="player-image" src="${cardData.image}" alt="${cardData.name}" onerror="this.style.display='none'; this.parentElement.classList.add('image-missing')">`
@@ -58,9 +66,11 @@ function createCard(type, index, cardData, isOpened = false) {
 
   const cardId = type === "epic"
     ? `epic-${index}`
-    : type === "highlight"
-      ? `hl-${index}`
-      : `standard-${index}`;
+    : type === "showtime"
+      ? `st-${index}`
+      : type === "highlight"
+        ? `hl-${index}`
+        : `standard-${index}`;
 
   const placeholderHtml = type === "standard" && !cardData.image
     ? `<div class="standard-placeholder">★</div>`
@@ -82,8 +92,10 @@ function createCard(type, index, cardData, isOpened = false) {
 function initCards() {
   standardGrid.innerHTML = '';
 
+  // รวม Show Time เข้าไปใน Catalog Grid ด้วย
   const combinedCards = [
     ...epicCardsData.map((card, index) => ({ type: "epic", index, cardData: card })),
+    ...showTimeCardsData.map((card, index) => ({ type: "showtime", index, cardData: card })),
     ...highlightCardsData.map((card, index) => ({ type: "highlight", index, cardData: card })),
     ...standardCardsData.map((card, index) => ({ type: "standard", index, cardData: card }))
   ];
@@ -94,8 +106,10 @@ function initCards() {
 }
 
 function createOpeningPool() {
+  // เพิ่ม Show Time เข้าไปใน Pool การเปิดซอง
   return shufflePool([
     ...epicCardsData.map((card, index) => ({ type: "epic", index, cardData: card, key: `epic-${index}` })),
+    ...showTimeCardsData.map((card, index) => ({ type: "showtime", index, cardData: card, key: `st-${index}` })),
     ...highlightCardsData.map((card, index) => ({ type: "highlight", index, cardData: card, key: `hl-${index}` })),
     ...standardCardsData.map((card, index) => ({ type: "standard", index, cardData: card, key: `standard-${index}` }))
   ]);
@@ -106,6 +120,9 @@ function resetOpeningState() {
   totalCoinsSpent = 0;
   openedCardKeys = new Set();
   remainingPackPool = createOpeningPool();
+  isFreeChanceUsed = false; // รีเซ็ตสถานะเปิดฟรี
+  if (openFreeBtn) openFreeBtn.disabled = false; // เปิดให้กดฟรีใหม่ได้เมื่อรีเซ็ต
+  
   openingSummary.innerHTML = 'No cards opened yet<br><span class="opening-user">Opened by: You</span>';
   openingStats.textContent = `Coins spent: ${totalCoinsSpent.toLocaleString()}`;
   openingHistory.innerHTML = '';
@@ -115,6 +132,7 @@ function resetOpeningState() {
 
 function renderOpeningResults() {
   const epicCount = openedCards.filter((item) => item.type === "epic").length;
+  const showtimeCount = openedCards.filter((item) => item.type === "showtime").length;
   const highlightCount = openedCards.filter((item) => item.type === "highlight").length;
   const standardCount = openedCards.filter((item) => item.type === "standard").length;
   const openedCount = openedCardKeys.size;
@@ -122,16 +140,18 @@ function renderOpeningResults() {
 
   openingSummary.innerHTML = `
     <strong>${openedCount} cards</strong> opened from a 150-card pool<br>
-    <span class="opening-user">Opened by: You · Epic ${epicCount} · Highlight ${highlightCount} · Standard ${standardCount} · Remaining ${remainingCount} cards</span>
+    <span class="opening-user">Opened by: You · Epic ${epicCount} · ShowTime ${showtimeCount} · Highlight ${highlightCount} · Standard ${standardCount} · Remaining ${remainingCount} cards</span>
   `;
 
+  // แฟลชประวัติเฉพาะการ์ดตระกูลสเปเชียล (Epic, ShowTime, Highlight)
   openingHistory.innerHTML = openedCards
-    .filter((item) => item.type === "epic" || item.type === "highlight")
+    .filter((item) => item.type === "epic" || item.type === "showtime" || item.type === "highlight")
     .map((item) => {
-      const badgeClass = item.type === "epic" ? "epic" : "highlight";
+      let badgeClass = item.type;
+      let badgeText = item.type === "epic" ? "EPIC" : item.type === "showtime" ? "ShowTime" : "Highlight";
       return `
         <div class="opening-history-item">
-          <span class="history-badge ${badgeClass}">${item.type === "epic" ? "EPIC" : "Highlight"}</span>
+          <span class="history-badge ${badgeClass}">${badgeText}</span>
           <span>${item.cardData.name}</span>
         </div>
       `;
@@ -145,7 +165,7 @@ function renderOpeningResults() {
   });
 }
 
-function executeDraw(drawCount) {
+function executeDraw(drawCount, isFree = false) {
   const safeCount = Math.max(1, Math.min(10, drawCount));
   const availableCount = Math.min(safeCount, remainingPackPool.length);
 
@@ -154,8 +174,14 @@ function executeDraw(drawCount) {
     return;
   }
 
-  const coinsUsed = safeCount === 1 ? 100 : 900;
-  totalCoinsSpent += coinsUsed;
+  // 2. ถ้าเป็นตั๋วฟรี ไม่ต้องหัก Coins คอนฟิกแบบปกติคริตตามจำนวนสุ่ม
+  if (!isFree) {
+    const coinsUsed = safeCount === 1 ? 100 : 900;
+    totalCoinsSpent += coinsUsed;
+  } else {
+    isFreeChanceUsed = true;
+    if (openFreeBtn) openFreeBtn.disabled = true; // กดใช้แล้วปิดปุ่มทันที
+  }
   
   const currentDrawResult = [];
   for (let i = 0; i < availableCount; i++) {
@@ -166,14 +192,14 @@ function executeDraw(drawCount) {
   }
 
   openedCards = [...openedCards, ...currentDrawResult];
-  openingStats.textContent = `Coins spent: ${totalCoinsSpent.toLocaleString()}`;
+  openingStats.textContent = `Coins spent: ${totalCoinsSpent.toLocaleString()}${isFreeChanceUsed ? " (ใช้สิทธิ์เปิดฟรีแล้ว)" : ""}`;
   
-  // Instantly render card results into collection
   renderOpeningResults();
 }
 
-// Stats UI updates
+// 3. ปรับสถิติในส่วนแดชบอร์ดและการจำลอง (Monte Carlo) ให้รองรับ Show Time
 function renderDashboard(result, draw) {
+  // สรุปโอกาสการเปิดตามคณิตศาสตร์ทั่วไปเบื้องต้น
   dashboardSummary.innerHTML = `
     <div class="summary-card">
       <span class="summary-label">Draw count</span>
@@ -184,17 +210,44 @@ function renderDashboard(result, draw) {
       <span class="summary-value" style="color: #fbbf24">${result.epicChance.toFixed(2)}%</span>
     </div>
     <div class="summary-card">
-      <span class="summary-label">Highlight Chance</span>
-      <span class="summary-value" style="color: #60a5fa">${result.hlChance.toFixed(2)}%</span>
+      <span class="summary-label">ShowTime Chance</span>
+      <span class="summary-value" style="color: #ec4899">${result.stChance.toFixed(2)}%</span>
     </div>
     <div class="summary-card">
       <span class="summary-label">Expected Value</span>
-      <span class="summary-value" style="font-size: 1.1rem; line-height: 1.4;">Epic: ${result.expectedEpic} <br> Highlight: ${result.expectedHl}</span>
+      <span class="summary-value" style="font-size: 0.95rem; line-height: 1.4;">Epic: ${result.expectedEpic} <br> ST: ${result.expectedSt} <br> HL: ${result.expectedHl}</span>
     </div>
   `;
 }
 
-// Compare & Prob table render
+// ฟังก์ชันคำนวณความน่าจะเป็นพื้นฐาน (จำลองโครงสร้างใหม่)
+function probability(draws) {
+  // พูลใหม่: Epic 1, ST 5, HL 6 -> รวมเป็นการ์ดพิเศษ 12 ใบ จาก 150 ใบ
+  const n = 150;
+  const kEpic = 1;
+  const kSt = 5;
+  const kHl = 6;
+  
+  // โอกาสสุ่มได้ขั้นต่ำ 1 ใบแบบ Hypergeometric (เปิดโดยไม่ใส่คืน)
+  const hyperChance = (k, d) => {
+    if (d > n - k) return 100; // หากดึงมากเกินกว่าจำนวนที่ไม่มีการ์ดใบนั้น โอกาสจะได้คือ 100%
+    let probNoHit = 1;
+    for (let i = 0; i < d; i++) {
+      probNoHit *= (n - k - i) / (n - i);
+    }
+    return (1 - probNoHit) * 100;
+  };
+
+  return {
+    epicChance: hyperChance(epicCardsData.length, draws),
+    stChance: hyperChance(showTimeCardsData.length, draws),
+    hlChance: hyperChance(highlightCardsData.length, draws),
+    expectedEpic: Math.round((epicCardsData.length / n) * draws),
+    expectedSt: Math.round((showTimeCardsData.length / n) * draws),
+    expectedHl: Math.round((highlightCardsData.length / n) * draws)
+  };
+}
+
 function renderCompareMode(currentCoin) {
   const compareValues = [1000, 3000, 5000, 10000];
 
@@ -208,7 +261,7 @@ function renderCompareMode(currentCoin) {
         <span class="compare-label">${coinValue.toLocaleString()} Coins</span>
         <span class="compare-value">${draw} draws</span>
         <div style="color: #fbbf24; font-weight: 700;">Epic: ${result.epicChance.toFixed(1)}%</div>
-        <div style="color: #60a5fa; font-weight: 700;">Highlight: ${result.hlChance.toFixed(1)}%</div>
+        <div style="color: #ec4899; font-weight: 700;">ShowTime: ${result.stChance.toFixed(1)}%</div>
       </div>
     `;
   }).join("");
@@ -222,7 +275,7 @@ function renderProbabilityTable(currentCoin) {
     const result = probability(draw);
     const isActive = coinValue === currentCoin;
     const epicPct = Math.min(100, result.epicChance);
-    const hlPct = Math.min(100, result.hlChance);
+    const stPct = Math.min(100, result.stChance);
 
     return `
       <tr class="${isActive ? "row-gold-highlight" : ""}">
@@ -236,21 +289,22 @@ function renderProbabilityTable(currentCoin) {
         </td>
         <td class="prob-col">
           <div class="progress-wrapper">
-            <div class="progress-bar bar-green" style="width: ${hlPct.toFixed(1)}%"></div>
-            <span class="pct-text">${hlPct.toFixed(1)}%</span>
+            <div class="progress-bar bar-pink" style="width: ${stPct.toFixed(1)}%; background-color:#ec4899;"></div>
+            <span class="pct-text">${stPct.toFixed(1)}%</span>
           </div>
         </td>
-        <td class="draw-col" style="font-size: 0.85rem; font-weight: 600;">Epic ${result.expectedEpic} · HL ${result.expectedHl}</td>
+        <td class="draw-col" style="font-size: 0.85rem; font-weight: 600;">Epic ${result.expectedEpic} · ST ${result.expectedSt}</td>
       </tr>
     `;
   }).join("");
 }
 
-// Monte Carlo calculations
+// Monte Carlo การจำลองพูลใหม่
 function createSimulationPool() {
   return Array.from({ length: 150 }, (_, index) => {
-    if (index < 3) return "epic";
-    if (index < 11) return "highlight";
+    if (index < epicCardsData.length) return "epic";
+    if (index < epicCardsData.length + showTimeCardsData.length) return "showtime";
+    if (index < epicCardsData.length + showTimeCardsData.length + highlightCardsData.length) return "highlight";
     return "normal";
   });
 }
@@ -269,27 +323,27 @@ function runSimulation(draws, iterations) {
   const safeIterations = Math.max(100, Math.min(10000, iterations));
 
   let epicAtLeastOne = 0;
-  let hlAtLeastOne = 0;
+  let stAtLeastOne = 0;
   let epicTotal = 0;
-  let hlTotal = 0;
+  let stTotal = 0;
 
   for (let i = 0; i < safeIterations; i++) {
     const drawn = shufflePool(createSimulationPool()).slice(0, safeDraws);
     const epicCount = drawn.filter((card) => card === "epic").length;
-    const hlCount = drawn.filter((card) => card === "highlight").length;
+    const stCount = drawn.filter((card) => card === "showtime").length;
 
     if (epicCount > 0) epicAtLeastOne += 1;
-    if (hlCount > 0) hlAtLeastOne += 1;
+    if (stCount > 0) stAtLeastOne += 1;
     epicTotal += epicCount;
-    hlTotal += hlCount;
+    stTotal += stCount;
   }
 
   return {
     iterations: safeIterations,
     epicChance: (epicAtLeastOne / safeIterations) * 100,
-    hlChance: (hlAtLeastOne / safeIterations) * 100,
+    stChance: (stAtLeastOne / safeIterations) * 100,
     avgEpic: epicTotal / safeIterations,
-    avgHl: hlTotal / safeIterations
+    avgSt: stTotal / safeIterations
   };
 }
 
@@ -303,21 +357,28 @@ function renderSimulation(draws) {
       <strong>${result.epicChance.toFixed(1)}%</strong>
     </div>
     <div class="simulation-result-card">
-      <small>Highlight (at least 1)</small>
-      <strong>${result.hlChance.toFixed(1)}%</strong>
+      <small>ShowTime (at least 1)</small>
+      <strong>${result.stChance.toFixed(1)}%</strong>
     </div>
     <div class="simulation-result-card">
       <small>Avg Epic per round</small>
       <strong>${result.avgEpic.toFixed(2)}</strong>
     </div>
     <div class="simulation-result-card">
-      <small>Avg HL per round</small>
-      <strong>${result.avgHl.toFixed(2)}</strong>
+      <small>Avg ST per round</small>
+      <strong>${result.avgSt.toFixed(2)}</strong>
     </div>
   `;
 }
 
-// Event listeners
+// 4. ผูก Event Listeners รวมถึงฟังก์ชันเปิดฟรี
+if (openFreeBtn) {
+  openFreeBtn.addEventListener("click", () => {
+    if (!isFreeChanceUsed) {
+      executeDraw(1, true); // พารามิเตอร์ที่ 2 ส่ง true เพื่อระบุว่าเป็นฟรี
+    }
+  });
+}
 slider.addEventListener("input", update);
 input.addEventListener("input", update);
 openSingleBtn.addEventListener("click", () => executeDraw(1));
@@ -358,8 +419,9 @@ function update() {
     if (card) card.classList.add('active');
   }
 
-  for (let i = 0; i < result.expectedHl; i++) {
-    const card = document.getElementById(`hl-${i}`);
+  // ไฮไลต์การ์ด Show Time ในแคตตาล็อกตามความน่าจะเป็นคาดหวัง
+  for (let i = 0; i < result.expectedSt; i++) {
+    const card = document.getElementById(`st-${i}`);
     if (card) card.classList.add('active');
   }
 }
