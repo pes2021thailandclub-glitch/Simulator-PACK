@@ -11,29 +11,42 @@ function combination(n, k) {
 
 function probability(draws) {
   const total = 150;
-  const epicCount = 3;
-  const hlCount = 8;
-  const normalCount = total - epicCount - hlCount; // 139
+  
+  // 1. ปรับสัดส่วนจำนวนการ์ดตามโครงสร้างพูลใหม่
+  const epicCount = 1;
+  const stCount = 5;       // เพิ่มการ์ดระดับ Show Time
+  const hlCount = 6;       // ปรับลดจำนวนการ์ด Highlight
+  const normalCount = 138; // ปรับลดจำนวนการ์ด Standard ให้รวมได้ 150 ใบพอดี
 
   if (draws > 150) draws = 150;
 
-  // 1. Calculate the probability of getting at least 1 Epic
-  const failEpic = combination(total - epicCount, draws) / combination(total, draws);
-  const epicChance = (1 - failEpic) * 100;
+  // 2. คำนวณความน่าจะเป็นที่จะได้การ์ดแต่ละประเภท "อย่างน้อย 1 ใบ" (Hypergeometric Distribution)
+  const totalComb = combination(total, draws);
 
-  // 2. Calculate the probability of getting at least 1 Highlight
-  const failHl = combination(total - hlCount, draws) / combination(total, draws);
-  const hlChance = (1 - failHl) * 100;
+  // โอกาสสุ่มได้ Epic อย่างน้อย 1 ใบ
+  const failEpic = combination(total - epicCount, draws) / totalComb;
+  const epicChance = totalComb > 0 ? (1 - failEpic) * 100 : 0;
 
-  // 3. Calculate the expected number of cards (Expected Value = draws * (count / total))
-  // For hypergeometric distribution, the expected value of target cards drawn is simple: draws * (targetCount / total)
+  // โอกาสสุ่มได้ Show Time อย่างน้อย 1 ใบ
+  const failSt = combination(total - stCount, draws) / totalComb;
+  const stChance = totalComb > 0 ? (1 - failSt) * 100 : 0;
+
+  // โอกาสสุ่มได้ Highlight อย่างน้อย 1 ใบ
+  const failHl = combination(total - hlCount, draws) / totalComb;
+  const hlChance = totalComb > 0 ? (1 - failHl) * 100 : 0;
+
+  // 3. คำนวณค่าคาดหมาย (Expected Value) ของการ์ดที่สุ่มได้ตามสัดส่วนคณิตศาสตร์
   const expectedEpic = Math.round(draws * (epicCount / total));
+  const expectedSt = Math.round(draws * (stCount / total));
   const expectedHl = Math.round(draws * (hlCount / total));
 
+  // 4. Return Object กลับออกไปให้ตรงกับคีย์ที่ app.js เรียกใช้
   return {
     epicChance: epicChance,
+    stChance: stChance,         // คีย์ใหม่สำหรับนำไปพ่นลงกราฟหรือหลอดความก้าวหน้า
     hlChance: hlChance,
     expectedEpic: expectedEpic,
+    expectedSt: expectedSt,     // คีย์ใหม่สำหรับนำไปนับจำนวนไฮไลต์การ์ดบนแคตตาล็อก
     expectedHl: expectedHl
   };
 }
